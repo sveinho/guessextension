@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Extension Analyzer</title>
+    <!-- Load JSZip library for handling ZIP files directly in the browser -->
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; line-height: 1.6; background-color: #f4f7f6; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .box { border: 2px dashed #007BFF; padding: 30px; text-align: center; background: #f0f7ff; border-radius: 6px; margin: 20px 0; }
+        input[type=file] { margin: 10px 0; }
+        button { background: #007BFF; color: white; border: 0; padding: 12px 24px; cursor: pointer; font-size: 16px; border-radius: 4px; font-weight: bold; width: 100%; }
+        button:hover { background: #0056b3; }
+        .error { color: #dc3545; font-weight: bold; margin-bottom: 15px; }
+        #status { font-weight: bold; color: #555; margin-top: 15px; text-align: center; }
+        
+        /* Table Styles for Results */
+        .results-container { margin-top: 30px; display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 14px; }
+        th { background-color: #f8f9fa; color: #444; font-weight: 600; }
+        tr:hover { background-color: #fcfcfc; }
+        
+        /* Status Badges */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .badge-match { background-color: #d4edda; color: #155724; }
+        .badge-mismatch { background-color: #f8d7da; color: #721c24; }
+        .badge-missing { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>File Extension Analyzer & Comparator</h2>
+        <p>Upload a standalone file (json, .xml, .csv, .tsv, .ini, .md, .txt .py, .js, .c, .cpp, .java, .css .obj, .stl, .xyz) or a <strong>ZIP archive</strong>. The tool will read the content entirely in your browser and compare the current file extension against the actual detected internal structure (first bytes of the file).</p>
+        
+        <div id="error-message" class="error"></div>
+
+        <div class="box">
+            <input type="file" id="fileInput"><br><br>
+            <button id="processBtn">Analyze & Compare Content</button>
+            <div id="status"></div>
+        </div>
+
+        <!-- Results Table Container -->
+        <div id="resultsContainer" class="results-container">
+            <h3>Analysis Report</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Current Extension</th>
+                        <th>Detected Format</th>
+                        <th>Comparison Status</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- Dynamic rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+    function guessExtendedExtension(textContents) {
+        const cleanText = textContents.trim();
+        
+        if (!cleanText) {
+            return ".txt";
+        }
+
+        // --- 1. CHECK STRUCTURED DATA AND WEB FORMATS ---
+        if (cleanText.startsWith("{") || cleanText.startsWith("[")) {
+            return ".json";
+        }
+
+        if (cleanText.startsWith("<")) {
+            if (cleanText.toLowerCase().includes("html") || cleanText.toLowerCase().includes("<body")) {
+                return ".html";
+            }
+            return ".xml";
+        }
+
+        // CSS (Frequent use of classes/IDs and curly braces)
+        if (/[\.#\w-]+\s*\{\s*[\w-]+\s*:/g.test(cleanText)) {
+            return ".css";
+        }
+
+        // Markdown (Often starts with # Heading, links, or bold text)
+        if (cleanText.startsWith("# ") || /\[.+\]\(.+\)/g.test(cleanText)) {
+            return ".md";
+        }
+
+        // --- 2. CHECK SOURCE CODE (PROGRAMMING LANGUAGES) ---
+        if (cleanText.includes("import ") && (cleanText.includes("def ") || cleanText.includes("if __name__"))) {
+            return ".py";
+        }
+
+        if (cleanText.includes("console.log") || cleanText.includes("const ") || cleanText.includes("let ")) {
+            return ".js";
+        }
+
+        if (cleanText.includes("#include <")) {
+            if (cleanText.includes("std::") || cleanText.includes("cout")) {
+                return ".cpp";
+            }
+            return ".c";
+        }
+
+        if (cleanText.includes("public class ") && cleanText.includes("public static void main")) {
+            return ".java";
+        }
+
+        if (cleanText.startsWith("[") && cleanText.split("\n").includes("]")) {
+            return ".ini";
+        }
+
+        // --- 3. CHECK CAD / 3D FORMATS ---
+        const lines = cleanText.split("\n").map(ln => ln.trim()).filter(ln => ln);
+        
+        if (lines.length > 0 && lines.slice(0, 5).every(ln => ln.startsWith("v ") || ln.startsWith("vn ") || ln.startsWith("vt ") || ln.startsWith("f ") || ln.startsWith("#"))) {
+            return ".obj";
+        }
+
+        if (cleanText.toLowerCase().startsWith("solid ")) {
+            return ".stl";
+        }
+
+        if (lines.length > 0 && /^-?\d+\.?\d*\s+-?\d+\.?\d*\s+-?\d+\.?\d*$/.test(lines[0])) {
+            return ".xyz";
+        }
+
+        // --- 4. CHECK TABLES (CSV / TSV) ---
+        const firstLine = lines.length > 0 ? lines[0] : "";
+        if ((firstLine.match(/\t/g) || []).length >= 2) {
+            return ".tsv";
+        }
+        if ((firstLine.match(/,/g) || []).length >= 2 || (firstLine.match(/;/g) || []).length >= 2) {
+            return ".csv";
+        }
+
+        return ".txt";
+    }
+    document.getElementById('processBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        const errorDiv = document.getElementById('error-message');
+        const statusDiv = document.getElementById('status');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsBody = document.getElementById('resultsBody');
+        
+        // Reset view state
+        errorDiv.textContent = "";
+        statusDiv.textContent = "";
+        resultsBody.innerHTML = "";
+        resultsContainer.style.display = "none";
+
+        if (fileInput.files.length === 0) {
+            errorDiv.textContent = "No file selected. Please choose a file.";
+            return;
+        }
+
+        const file = fileInput.files[0];
+        statusDiv.textContent = "Analyzing structure...";
+
+        try {
+            let filesToAnalyze = [];
+
+            // Case A: File is a ZIP file
+            if (file.name.toLowerCase().endsWith('.zip')) {
+                const jszip = new JSZip();
+                const loadedZip = await jszip.loadAsync(file);
+
+                for (const [filename, zipEntry] of Object.entries(loadedZip.files)) {
+                    if (zipEntry.dir) continue; 
+
+                    const fileDataBytes = await zipEntry.async("uint8array");
+                    const decoder = new TextDecoder("utf-8", { fatal: false });
+                    const textChunks = decoder.decode(fileDataBytes.slice(0, 5000));
+                    
+                    filesToAnalyze.push({
+                        fullName: filename,
+                        text: textChunks
+                    });
+                }
+            } else {
+                // Case B: Standalone File
+                const fileBuffer = await file.arrayBuffer();
+                const decoder = new TextDecoder("utf-8", { fatal: false });
+                const textChunks = decoder.decode(new Uint8Array(fileBuffer).slice(0, 5000));
+                
+                filesToAnalyze.push({
+                    fullName: file.name,
+                    text: textChunks
+                });
+            }
+
+            // Generate rows for the report
+            filesToAnalyze.forEach(item => {
+                const lastDotIndex = item.fullName.lastIndexOf('.');
+                const currentExt = lastDotIndex !== -1 ? item.fullName.substring(lastDotIndex).toLowerCase() : "";
+                const detectedExt = guessExtendedExtension(item.text);
+                
+                let statusBadge = "";
+                if (!currentExt) {
+                    statusBadge = `<span class="badge badge-missing">Missing Extension</span>`;
+                } else if (currentExt === detectedExt) {
+                    statusBadge = `<span class="badge badge-match">Match</span>`;
+                } else {
+                    statusBadge = `<span class="badge badge-mismatch">Mismatch</span>`;
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${item.fullName}</strong></td>
+                    <td><code>${currentExt || '[none]'}</code></td>
+                    <td><code>${detectedExt}</code></td>
+                    <td>${statusBadge}</td>
+                `;
+                resultsBody.appendChild(row);
+            });
+
+            statusDiv.textContent = `Analysis complete. Processed ${filesToAnalyze.length} file(s).`;
+            resultsContainer.style.display = "block";
+
+        } catch (err) {
+            console.error(err);
+            errorDiv.textContent = "An error occurred during analysis: " + err.message;
+            statusDiv.textContent = "";
+        }
+    });
+    </script>
+</body>
+</html>
