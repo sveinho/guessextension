@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Advanced File Extension Corrector</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; line-height: 1.6; background-color: #f4f7f6; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .box { border: 2px dashed #007BFF; padding: 30px; text-align: center; background: #f0f7ff; border-radius: 6px; margin: 20px 0; }
+        input[type=file] { margin: 10px 0; }
+        button { background: #007BFF; color: white; border: 0; padding: 12px 24px; cursor: pointer; font-size: 16px; border-radius: 4px; font-weight: bold; width: 100%; }
+        button:hover { background: #0056b3; }
+        .error { color: #dc3545; font-weight: bold; }
+        ul { padding-left: 20px; font-size: 14px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Correct File Extensions Automatically</h2>
+        <p>Upload a single file or a <strong>ZIP archive</strong>. The tool will strip old extensions, scan the content of each file, and return them with the correct format.</p>
+        
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <p class="error">{{ message }}</p>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="box">
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" name="file"><br><br>
+                <button type="submit">Analyze and Download</button>
+            </form>
+        </div>
+
+        <h3>Supported Formats:</h3>
+        <ul>
+            <li><strong>Data / Documents:</strong> .json, .xml, .csv, .tsv, .ini, .md, .txt</li>
+            <li><strong>Source Code:</strong> .py, .js, .c, .cpp, .java, .css</li>
+            <li><strong>3D / Graphics:</strong> .obj, .stl, .xyz</li>
+        </ul>
+    </div>
+</body>
+</html>
