@@ -3,9 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Extension Analyzer</title>
-    <!-- Load JSZip library for handling ZIP files directly in the browser -->
-    <script src="https://cloudflare.com"></script>
+    <title>File Extension Heuristic Analyzer</title>
     <style>
         body { font-family: system-ui, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; line-height: 1.6; background-color: #f4f7f6; color: #333; }
         .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -33,7 +31,8 @@
 <body>
     <div class="card">
         <h2>File Extension Analyzer & Comparator</h2>
-        <p>Upload a standalone file (json, .xml, .csv, .tsv, .ini, .md, .txt .py, .js, .c, .cpp, .java, .css .obj, .stl, .xyz) or a <strong>ZIP archive</strong>. The tool will read the content entirely in your browser and compare the current file extension against the actual detected internal structure (first bytes of the file).</p>
+        <p>Upload a standalone file (json, .xml, .csv, .tsv, .ini, .md, .txt .py, .js, .c, .cpp, .java, .css .obj, .stl, .xyz). 
+            The tool will read the content entirely in your browser and compare the current file extension against the actual detected internal structure (first bytes of the file).</p>
         
         <div id="error-message" class="error"></div>
 
